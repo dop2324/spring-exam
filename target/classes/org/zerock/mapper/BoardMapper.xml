@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.zerock.mapper.BoardMapper">
+
+<select id="getList" resultType="org.zerock.domain.BoardVO">
+<!-- 이와 같이 xml에서 사용하게 되면 mapper의 sql문을 삭제해도 상관없다. 다시 말해서 sql문을 mapper 와 mapper.xml 두가지 방법으로 사용할 수 있다.  -->
+<![CDATA[select*from tbl_board where bno> 0]]>    
+<!-- CDATA태그 조건문에서 부등호를 쓰기위해 사용하는 Mybatis 태그 -->
+</select>
+
+<insert id="insert">
+ insert into tbl_board(title,content,writer)
+ values(#{title},#{content},#{writer})
+</insert>
+
+<insert id="insertSelectKey">
+	<!-- <selectKey keyProperty="bno" order="AFTER" resultType="int">
+			select LAST_INSERT_ID()
+	</selectKey> -->
+	<selectKey keyProperty="bno" order="BEFORE" resultType="int">
+			select max(bno)+1 from tbl_board
+	</selectKey>
+	insert into tbl_board(bno,title,content,writer)
+	values (#{bno}, #{title}, #{content}, #{writer})
+</insert>
+
+<select id="read" resultType="org.zerock.domain.BoardVO">
+	select*from tbl_board where bno= #{bno}
+</select>
+
+<delete id="delete">
+	delete from tbl_board where bno= #{bno}
+</delete>
+
+<update id="update">
+ update tbl_board set title = #{title}, content = #{content}, writer = #{writer}, updateDate = now() where bno = #{bno}
+
+</update>
+
+<!-- 이걸 추가 안해서 등록에 오류가 났음 -->
+<update id="updateReplyCnt">
+		update tbl_board set replycnt = replycnt + #{amount} where bno = #{bno}
+</update>
+
+<!-- <select id="getListWithPaging" resultType="org.zerock.domain.BoardVO">
+	<![CDATA[select bno, title , content, writer, regdate, updatedate
+from (
+		select @rownum:=@rownum+1 as rn, bno, title, content, writer, regdate, updatedate
+        from(select @rownum:=0) as tmp, tbl_board
+        order by bno
+)boardList ]]>
+<include refid="criteria"></include>
+<![CDATA[ where rn> (#{pageNum} -1 ) * #{amount}) and rn<=#{pageNum} * #{amount}]]>
+</select> -->
+
+<select id="getListWithPaging" resultType="org.zerock.domain.BoardVO">
+	<![CDATA[select bno, title , content, writer, regdate, updatedate , replycnt
+from (
+		select @rownum:=@rownum+1 as rn, bno, title, content, writer, regdate, updatedate, replycnt
+        from(select @rownum:=0) as tmp, tbl_board
+        where 1=1
+        ]]>
+        <include refid="criteria"></include>
+<![CDATA[order by bno) boardlist where rn> (#{pageNum} -1 ) * #{amount} and rn<=#{pageNum} * #{amount}]]>
+</select>
+					<!-- desc 나중에 수정 -->
+<select id="getTotalCount" resultType="int">
+	select count(*) from tbl_board 
+	where bno > 0
+	<include refid="criteria"></include>
+	
+</select>
+
+<sql id="criteria">
+<trim prefix="AND(" suffix=")" prefixOverrides="OR">
+<foreach item='type' collection="typeArr">
+<trim prefix="OR">
+<choose>
+<when test="type == 'T'.toString()">
+title like CONCAT('%',#{keyword},'%')
+</when>
+<when test="type == 'C'.toString()">
+content like CONCAT('%',#{keyword},'%')
+</when>
+<when test="type == 'W'.toString()">
+writer like CONCAT('%',#{keyword},'%')
+</when>
+</choose>
+</trim>
+</foreach>
+</trim>
+</sql> 
+							<!-- 	<sql id="criteria">
+								<if test="map != null">
+								<where>
+								<foreach index="key" item="val" collection="map" >
+								<trim prefix="OR">
+								<if test="key == 'T'.toString()">
+								title like concat('%',#{keyword},'%')
+								</if>
+								<if test="key == 'C'.toString()">
+								content like concat('%',#{keyword},'%')
+								</if>
+								<if test="key == 'W'.toString()">
+								writer like concat('%',#{keyword},'%')
+								</if>
+								</trim>
+								</foreach>
+								</where>
+								</if>
+								
+								</sql> -->
+
+			
+			
+
+</mapper>
+
+
+
+
+
+
+
+
